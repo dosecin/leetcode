@@ -39,8 +39,9 @@ func maxProfit(prices []int) int {
 	}
 	minP, maxP := prices[0], 0
 	for i := 1; i < len(prices); i++ {
-		if prices[i]-minP > maxP {
-			maxP = prices[i] - minP
+		profit := prices[i] - minP
+		if profit > maxP {
+			maxP = profit
 		}
 		if prices[i] < minP {
 			minP = prices[i]
