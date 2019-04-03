@@ -29,7 +29,6 @@
  *
  */
 func isHappy(n int) bool {
-	happyMap := make(map[int]struct{})
 	for {
 		var sum int
 		for n > 0 {
@@ -40,10 +39,9 @@ func isHappy(n int) bool {
 		if sum == 1 {
 			return true
 		}
-		if _, ok := happyMap[sum]; ok {
+		if sum == 4 {
 			return false
 		}
-		happyMap[sum] = struct{}{}
 		n = sum
 	}
 }
