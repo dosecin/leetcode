@@ -6,84 +6,81 @@
 
 // @lc code=start
 func findLadders(beginWord string, endWord string, wordList []string) [][]string {
-	wordMap := map[string]int{}
+	wordMap := map[string]struct{}{}
 	for _, word := range wordList {
-		wordMap[word] = 1
+		wordMap[word] = struct{}{}
 	}
 
 	if _, ok := wordMap[endWord]; !ok {
 		return [][]string{}
 	}
 
-	getNext := func(beginWord string, exclude map[string]int) []string {
-		ans := []string{}
-		beginBytes := []byte(beginWord)
-		for i := range beginBytes {
-			oldByte := beginBytes[i]
-			for b := byte('a'); b <= 'z'; b++ {
-				if beginBytes[i] == b {
-					continue
-				}
+	src, dst := map[string]struct{}{beginWord: struct{}{}}, map[string]struct{}{endWord: struct{}{}}
+	backward := false
+	paths := map[string][]string{}
 
-				beginBytes[i] = b
-				nextStr := string(beginBytes)
-				if _, ok := exclude[nextStr]; ok {
-					continue
-				}
-				if _, ok := wordMap[nextStr]; ok {
-					ans = append(ans, nextStr)
-				}
-			}
-			beginBytes[i] = oldByte
+	for len(src) > 0 && len(dst) > 0 {
+		if len(src) > len(dst) {
+			src, dst = dst, src
+			backward = !backward
 		}
-		return ans
-	}
-
-	type solution struct {
-		beginWord string
-		list      []string
+		for word := range src {
+			delete(wordMap, word)
+		}
+		found := false
+		newSrc := map[string]struct{}{}
+		for word := range src {
+			wordBytes := []byte(word)
+			for i := range wordBytes {
+				for c := byte('a'); c <= 'z'; c++ {
+					if word[i] == c {
+						continue
+					}
+					wordBytes[i] = c
+					target := string(wordBytes)
+					if _, ok := wordMap[target]; !ok {
+						continue
+					}
+					source := word
+					if _, ok := dst[target]; ok {
+						found = true
+					} else {
+						newSrc[target] = struct{}{}
+					}
+					if backward {
+						source, target = target, source
+					}
+					paths[target] = append(paths[target], source)
+				}
+				wordBytes[i] = word[i]
+			}
+		}
+		if found {
+			break
+		}
+		src = newSrc
 	}
 
 	ans := [][]string{}
-	inPath := map[string]int{beginWord: 1}
-	solutions := []solution{
-		solution{beginWord: beginWord, list: []string{beginWord}},
-	}
-	for len(ans) == 0 && len(solutions) > 0 {
-		newSolutions := []solution{}
-		currInPath := map[string]int{}
-		for _, sol := range solutions {
-			exclude := map[string]int{}
-			for _, word := range sol.list {
-				exclude[word] = 1
-			}
-			nexts := getNext(sol.beginWord, exclude)
-			for _, next := range nexts {
-				if _, ok := inPath[next]; ok {
-					continue
-				}
-				if next == endWord {
-					list := make([]string, len(sol.list), len(sol.list)+1)
-					copy(list, sol.list)
-					list = append(list, next)
-					ans = append(ans, list)
-					continue
-				}
-				currInPath[next] = 1
-				newSol := solution{
-					beginWord: next,
-					list:      make([]string, len(sol.list), len(sol.list)+1),
-				}
-				copy(newSol.list, sol.list)
-				newSol.list = append(newSol.list, next)
-				newSolutions = append(newSolutions, newSol)
-			}
+	var getPath func(cur string, path []string)
+	getPath = func(cur string, path []string) {
+		if cur == beginWord {
+			newPath := make([]string, len(path))
+			copy(newPath, path)
+			ans = append(ans, newPath)
+			return
 		}
-		solutions = newSolutions
-		for k := range currInPath {
-			inPath[k] = 1
+		srcs, ok := paths[cur]
+		if !ok {
+			return
+		}
+		path = append([]string{""}, path...)
+		for _, src := range srcs {
+			path[0] = src
+			getPath(src, path)
 		}
 	}
+	getPath(endWord, []string{endWord})
 	return ans
 }
 
