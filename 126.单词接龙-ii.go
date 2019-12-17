@@ -6,45 +6,82 @@
 
 // @lc code=start
 func findLadders(beginWord string, endWord string, wordList []string) [][]string {
-	if beginWord == endWord {
-		return [][]string{{beginWord}}
-	}
-	ans := [][]string{}
-	canTransform := func(a, b string) bool {
-		diff := 0
-		for i := range a {
-			if a[i] != b[i] {
-				diff++
-			}
-		}
-		return diff == 1
+	wordMap := map[string]int{}
+	for _, word := range wordList {
+		wordMap[word] = 1
 	}
 
-	for i, str := range wordList {
-		if !canTransform(beginWord, str) {
-			continue
+	if _, ok := wordMap[endWord]; !ok {
+		return [][]string{}
+	}
+
+	getNext := func(beginWord string, exclude map[string]int) []string {
+		ans := []string{}
+		beginBytes := []byte(beginWord)
+		for i := range beginBytes {
+			oldByte := beginBytes[i]
+			for b := byte('a'); b <= 'z'; b++ {
+				if beginBytes[i] == b {
+					continue
+				}
+
+				beginBytes[i] = b
+				nextStr := string(beginBytes)
+				if _, ok := exclude[nextStr]; ok {
+					continue
+				}
+				if _, ok := wordMap[nextStr]; ok {
+					ans = append(ans, nextStr)
+				}
+			}
+			beginBytes[i] = oldByte
 		}
-		wl := append([]string{}, wordList[:i]...)
-		wl = append(wl, wordList[i+1:]...)
-		subans := findLadders(str, endWord, wl)
-		if len(subans) == 0 {
-			continue
-		}
-		if len(ans) != 0 && len(subans[0])+1 < len(ans[0]) {
-			ans = ans[:0]
-		}
-		if len(ans) != 0 {
-			subLen := len(subans[0]) + 1
-			ansLen := len(ans[0])
-			if subLen < ansLen {
-				ans = ans[:0]
-			} else if subLen > ansLen {
-				subans = subans[:0]
+		return ans
+	}
+
+	type solution struct {
+		beginWord string
+		list      []string
+	}
+
+	ans := [][]string{}
+	inPath := map[string]int{beginWord: 1}
+	solutions := []solution{
+		solution{beginWord: beginWord, list: []string{beginWord}},
+	}
+	for len(ans) == 0 && len(solutions) > 0 {
+		newSolutions := []solution{}
+		currInPath := map[string]int{}
+		for _, sol := range solutions {
+			exclude := map[string]int{}
+			for _, word := range sol.list {
+				exclude[word] = 1
+			}
+			nexts := getNext(sol.beginWord, exclude)
+			for _, next := range nexts {
+				if _, ok := inPath[next]; ok {
+					continue
+				}
+				if next == endWord {
+					list := make([]string, len(sol.list), len(sol.list)+1)
+					copy(list, sol.list)
+					list = append(list, next)
+					ans = append(ans, list)
+					continue
+				}
+				currInPath[next] = 1
+				newSol := solution{
+					beginWord: next,
+					list:      make([]string, len(sol.list), len(sol.list)+1),
+				}
+				copy(newSol.list, sol.list)
+				newSol.list = append(newSol.list, next)
+				newSolutions = append(newSolutions, newSol)
 			}
 		}
-		for _, sa := range subans {
-			sa = append([]string{beginWord}, sa...)
-			ans = append(ans, sa)
+		solutions = newSolutions
+		for k := range currInPath {
+			inPath[k] = 1
 		}
 	}
 	return ans
